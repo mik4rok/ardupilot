@@ -157,35 +157,6 @@ float Plane::relative_ground_altitude(bool use_rangefinder_if_available)
         return rangefinder_state.height_estimate;
    }
 
-#if HAL_QUADPLANE_ENABLED
-   if (use_rangefinder_if_available && quadplane.in_vtol_land_final() &&
-       rangefinder.status_orient(ROTATION_PITCH_270) == RangeFinder::Status::OutOfRangeLow) {
-       // a special case for quadplane landing when rangefinder goes
-       // below minimum. Consider our height above ground to be zero
-       return 0;
-   }
-#endif
-
-#if AP_TERRAIN_AVAILABLE
-    float altitude;
-    if (target_altitude.terrain_following &&
-        terrain.status() == AP_Terrain::TerrainStatusOK &&
-        terrain.height_above_terrain(altitude, true)) {
-        return altitude;
-    }
-#endif
-
-#if HAL_QUADPLANE_ENABLED
-    if (quadplane.in_vtol_land_descent() &&
-        !(quadplane.options & QuadPlane::OPTION_MISSION_LAND_FW_APPROACH)) {
-        // when doing a VTOL landing we can use the waypoint height as
-        // ground height. We can't do this if using the
-        // LAND_FW_APPROACH as that uses the wp height as the approach
-        // height
-        return height_above_target();
-    }
-#endif
-
     return relative_altitude;
 }
 
@@ -202,20 +173,6 @@ void Plane::set_target_altitude_current(void)
 
     // reset any glide slope offset
     reset_offset_altitude();
-
-#if AP_TERRAIN_AVAILABLE
-    // also record the terrain altitude if possible
-    float terrain_altitude;
-    if (terrain_enabled_in_current_mode() && terrain.height_above_terrain(terrain_altitude, true) && !terrain_disabled()) {
-        target_altitude.terrain_following = true;
-        target_altitude.terrain_alt_cm = terrain_altitude*100;
-    } else {
-        // if terrain following is disabled, or we don't know our
-        // terrain altitude when we set the altitude then don't
-        // terrain follow
-        target_altitude.terrain_following = false;        
-    }
-#endif
 }
 
 /*
@@ -238,24 +195,6 @@ void Plane::set_target_altitude_location(const Location &loc)
     if (loc.relative_alt) {
         target_altitude.amsl_cm += home.alt;
     }
-#if AP_TERRAIN_AVAILABLE
-    /*
-      if this location has the terrain_alt flag set and we know the
-      terrain altitude of our current location then treat it as a
-      terrain altitude
-     */
-    float height;
-    if (loc.terrain_alt && terrain.height_above_terrain(height, true)) {
-        target_altitude.terrain_following = true;
-        target_altitude.terrain_alt_cm = loc.alt;
-        if (!loc.relative_alt) {
-            // it has home added, remove it
-            target_altitude.terrain_alt_cm -= home.alt;
-        }
-    } else {
-        target_altitude.terrain_following = false;
-    }
-#endif
 }
 
 /*
@@ -294,11 +233,6 @@ int32_t Plane::relative_target_altitude_cm(void)
 void Plane::change_target_altitude(int32_t change_cm)
 {
     target_altitude.amsl_cm += change_cm;
-#if AP_TERRAIN_AVAILABLE
-    if (target_altitude.terrain_following && !terrain_disabled()) {
-        target_altitude.terrain_alt_cm += change_cm;
-    }
-#endif
 }
 /*
   change target altitude by a proportion of the target altitude offset
@@ -607,10 +541,11 @@ float Plane::rangefinder_correction(void)
     }
 
     // for now we only support the rangefinder for landing 
-    bool using_rangefinder = (g.rangefinder_landing && flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND);
-    if (!using_rangefinder) {
-        return 0;
-    }
+    // and now I try to fix it for ekranoplan ;) FLIGHT_LAND to FLIGHT_NORMAL
+    //bool using_rangefinder = (g.rangefinder_landing && flight_stage == AP_Vehicle::FixedWing::FLIGHT_NORMAL);
+    //if (!using_rangefinder) {
+    //    return 0;
+    //}
 
     return rangefinder_state.correction;
 }
@@ -623,7 +558,7 @@ void Plane::rangefinder_terrain_correction(float &height)
 {
 #if AP_TERRAIN_AVAILABLE
     if (!g.rangefinder_landing ||
-        flight_stage != AP_Vehicle::FixedWing::FLIGHT_LAND ||
+        flight_stage != AP_Vehicle::FixedWing::FLIGHT_NORMAL ||
         !terrain_enabled_in_current_mode()) {
         return;
     }
@@ -673,7 +608,7 @@ void Plane::rangefinder_height_update(void)
         } else {
             rangefinder_state.in_range = true;
             bool flightstage_good_for_rangefinder_landing = false;
-            if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND) {
+            if (flight_stage == AP_Vehicle::FixedWing::FLIGHT_NORMAL) {
                 flightstage_good_for_rangefinder_landing = true;
             }
 #if HAL_QUADPLANE_ENABLED
@@ -684,7 +619,7 @@ void Plane::rangefinder_height_update(void)
             }
 #endif
             if (!rangefinder_state.in_use &&
-                flightstage_good_for_rangefinder_landing &&
+                // flightstage_good_for_rangefinder_landing &&
                 g.rangefinder_landing) {
                 rangefinder_state.in_use = true;
                 gcs().send_text(MAV_SEVERITY_INFO, "Rangefinder engaged at %.2fm", (double)rangefinder_state.height_estimate);

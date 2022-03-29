@@ -1,4 +1,27 @@
 {
     "cSpell.language": "en-GB",
-    "astyle.astylerc": "${workspaceFolder}/Tools/CodeStyle/astylerc"
+    "astyle.astylerc": "${workspaceFolder}/Tools/CodeStyle/astylerc",
+    "http.proxy": "http://172.243.1.27:3128/",
+    "https.proxy": "http://172.243.1.27:3128/",
+    "http.proxyStrictSSL": false,
+    "cSpell.words": [
+        "accel",
+        "ADSB",
+        "ahrs",
+        "amsl",
+        "AMSL",
+        "baro",
+        "ekranoplan",
+        "fbwb",
+        "FBWB",
+        "lidar",
+        "Lidar",
+        "Lidars",
+        "millis",
+        "qland",
+        "QLAND",
+        "qrtl",
+        "QRTL",
+        "TECS"
+    ]
 }
