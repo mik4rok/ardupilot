@@ -619,7 +619,7 @@ void Plane::rangefinder_height_update(void)
             }
 #endif
             if (!rangefinder_state.in_use &&
-                // flightstage_good_for_rangefinder_landing &&
+                flightstage_good_for_rangefinder_landing &&
                 g.rangefinder_landing) {
                 rangefinder_state.in_use = true;
                 gcs().send_text(MAV_SEVERITY_INFO, "Rangefinder engaged at %.2fm", (double)rangefinder_state.height_estimate);
