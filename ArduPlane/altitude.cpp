@@ -119,12 +119,12 @@ void Plane::setup_glide_slope(void)
         break;
 
     case Mode::Number::AUTO:
-        // we only do glide slide handling in AUTO when above 20m or
-        // when descending. The 20 meter threshold is arbitrary, and
+        // we only do glide slide handling in AUTO when above 20cm or
+        // when descending. The 20 centemeter threshold is arbitrary, and
         // is basically to prevent situations where we try to slowly
         // gain height at low altitudes, potentially hitting
         // obstacles.
-        if (adjusted_relative_altitude_cm() > 2000 || above_location_current(next_WP_loc)) {
+        if (adjusted_relative_altitude_cm() > 20 || above_location_current(next_WP_loc)) {
             set_offset_altitude_location(prev_WP_loc, next_WP_loc);
         } else {
             reset_offset_altitude();
@@ -535,19 +535,21 @@ float Plane::lookahead_adjustment(void)
  */
 float Plane::rangefinder_correction(void)
 {
-    if (millis() - rangefinder_state.last_correction_time_ms > 5000) {
-        // we haven't had any rangefinder data for 5s - don't use it
+    if (millis() - rangefinder_state.last_correction_time_ms > 1000) {
+        // we haven't had any rangefinder data for 1s - don't use it
         return 0;
     }
 
     // for now we only support the rangefinder for landing 
     // and now I try to fix it for ekranoplan ;) FLIGHT_LAND to FLIGHT_NORMAL
     //bool using_rangefinder = (g.rangefinder_landing && flight_stage == AP_Vehicle::FixedWing::FLIGHT_NORMAL);
-    //if (!using_rangefinder) {
-    //    return 0;
-    //}
+    
+    if (!using_rangefinder) {
+        return 0;
+    }
 
-    return rangefinder_state.correction;
+    //return rangefinder_state.correction;
+    return 1;
 }
 
 /*
